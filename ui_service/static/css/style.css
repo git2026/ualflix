@@ -1,0 +1,124 @@
+:root {
+  --bs-primary-rgb: 13, 110, 253;
+  --bs-secondary-rgb: 108, 117, 125;
+  --bs-font-sans-serif: 'Poppins', sans-serif;
+  --theme-light-navbar-bg: #cde7ff;
+  --bs-body-bg: #f8f9fa;
+  --bs-body-color: #212529;
+  --bs-tertiary-bg: #ffffff;
+  --bs-secondary-bg: #e9ecef;
+  --bs-border-color: #dee2e6;
+}
+
+[data-bs-theme="dark"] {
+  --bs-primary-rgb: 59, 130, 246;
+  --theme-dark-navbar-bg: #374151;
+  --theme-dark-footer-bg: #1f2937;
+  --bs-body-bg: #111827;
+  --bs-body-color: #dee2e6;
+  --bs-tertiary-bg: #1f2937;
+  --bs-secondary-bg: #374151;
+  --bs-border-color: #4b5563;
+}
+
+body {
+  font-family: var(--bs-font-sans-serif);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.navbar-custom, .footer-custom {
+  border-bottom: 1px solid var(--bs-border-color);
+  transition: background-color 0.2s ease-in-out;
+}
+
+[data-bs-theme="light"] .navbar-custom,
+[data-bs-theme="light"] .footer-custom {
+  background-color: var(--theme-light-navbar-bg);
+}
+
+[data-bs-theme="dark"] .navbar-custom {
+  background-color: var(--theme-dark-navbar-bg);
+}
+
+[data-bs-theme="dark"] .footer-custom {
+    background-color: var(--theme-dark-footer-bg);
+}
+
+.hover-lift {
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.card {
+  background-color: var(--bs-tertiary-bg);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.video-card .video-container {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.video-card video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-player {
+  background-color: #000;
+}
+
+.sidebar {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.sidebar-video-item .video-thumbnail {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  background-color: var(--bs-tertiary-bg);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--bs-secondary-bg);
+  border-radius: 4px;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+}
+
+.table {
+  --bs-table-bg: var(--bs-tertiary-bg);
+  --bs-table-border-color: var(--bs-border-color);
+  --bs-table-striped-bg: var(--bs-secondary-bg);
+  --bs-table-striped-color: var(--bs-body-color);
+  --bs-table-color: var(--bs-body-color);
+}
+.table > thead {
+  --bs-table-bg: var(--bs-secondary-bg);
+}

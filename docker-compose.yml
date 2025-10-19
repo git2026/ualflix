@@ -1,0 +1,142 @@
+networks:
+  ualflix-net:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-ualflix}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-senha123}
+      POSTGRES_DB: ${DB_NAME:-catalogdb}
+    volumes:
+      - catalog_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ualflix-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ualflix} -d ${DB_NAME:-catalogdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:6
+    restart: unless-stopped
+    command:
+      - redis-server
+      - "--appendonly"
+      - "yes"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ualflix-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  catalog_service:
+    build: ./catalog_service
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-ualflix}
+      DB_PASSWORD: ${DB_PASSWORD:-senha123}
+      DB_NAME: ${DB_NAME:-catalogdb}
+      UPLOAD_DIR: /app/videos
+      CELERY_BROKER_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5000:5000"
+    volumes:
+      - videos:/app/videos
+    networks:
+      - ualflix-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/videos/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  catalog_worker:
+    build: ./catalog_service
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-ualflix}
+      DB_PASSWORD: ${DB_PASSWORD:-senha123}
+      DB_NAME: ${DB_NAME:-catalogdb}
+      UPLOAD_DIR: /app/videos
+      CELERY_BROKER_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: 1
+    command: ["celery", "-A", "tasks:app_celery", "worker", "--loglevel=INFO", "-Q", "catalog_queue"]
+    volumes:
+      - videos:/app/videos
+    networks:
+      - ualflix-net
+
+  streaming_service:
+    build: ./streaming_service
+    restart: on-failure
+    depends_on:
+      catalog_service:
+        condition: service_healthy
+    environment:
+      CATALOG_URL: http://catalog_service:5000
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "5001:5001"
+    volumes:
+      - videos:/app/videos:ro
+    networks:
+      - ualflix-net
+
+  ui_service:
+    build: ./ui_service
+    restart: on-failure
+    depends_on:
+      catalog_service:
+        condition: service_healthy
+      streaming_service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      CATALOG_URL: http://catalog_service:5000
+      STREAMING_URL: http://streaming_service:5001
+      CELERY_BROKER_URL: redis://redis:6379/0
+      UPLOAD_DIR: /app/static/uploads
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ui_uploads:/app/static/uploads
+    networks:
+      - ualflix-net
+
+volumes:
+  catalog_db:
+  redis_data:
+  videos:
+  ui_uploads:

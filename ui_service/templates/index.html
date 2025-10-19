@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Catálogo – UALFlix{% endblock %}
+{% block content %}
+<h1 class="mb-4">Catálogo de Vídeos</h1>
+<div class="row g-4">
+  {% for v in videos %}
+  <div class="col-12 col-md-6 col-lg-4 col-xl-3 d-flex">
+    <div class="card w-100 hover-lift video-card">
+      <a href="/watch/{{ v.id }}" class="video-container">
+        <video muted loop preload="metadata">
+          <source src="{{ v.stream_url }}" type="video/mp4">
+        </video>
+      </a>
+      <div class="card-body">
+        <h5 class="card-title text-truncate">{{ v.title }}</h5>
+        <p class="card-text text-muted"><small>Duração: {{ v.duration }}&nbsp;s</small></p>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <p>Não há vídeos disponíveis</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.video-card').forEach(card => {
+        const video = card.querySelector('video');
+        card.addEventListener('mouseenter', () => {
+            video.play();
+        });
+        card.addEventListener('mouseleave', () => {
+            video.pause();
+            video.currentTime = 0;
+        });
+    });
+});
+</script>
+{% endblock %}

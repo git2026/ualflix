@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streaming-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: streaming-service
+  template:
+    metadata:
+      labels:
+        app: streaming-service
+    spec:
+      containers:
+      - name: streaming-service
+        image: ualflix_streaming_service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5001
+        readinessProbe:
+          tcpSocket:
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 5001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        env:
+        - name: CATALOG_URL
+          value: "http://catalog-service:5000"
+        volumeMounts:
+        - name: videos
+          mountPath: /app/videos
+      volumes:
+      - name: videos
+        persistentVolumeClaim:
+          claimName: videos-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streaming-service
+spec:
+  selector:
+    app: streaming-service
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5001
+    targetPort: 5001
+  type: ClusterIP

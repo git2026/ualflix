@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ui-service
+  template:
+    metadata:
+      labels:
+        app: ui-service
+    spec:
+      containers:
+      - name: ui-service
+        image: ualflix_ui_service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: CATALOG_URL
+          value: "http://catalog-service:5000"
+        - name: STREAMING_URL
+          value: "http://streaming-service:5001"
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: UPLOAD_DIR
+          value: "/app/static/uploads"
+        volumeMounts:
+        - name: ui-uploads
+          mountPath: /app/static/uploads
+      volumes:
+      - name: ui-uploads
+        persistentVolumeClaim:
+          claimName: ui-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui-service
+spec:
+  selector:
+    app: ui-service
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ui-uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

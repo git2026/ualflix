@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Administração – UALFlix{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Painel Administrativo</h1>
+<table class="table align-middle">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Título</th>
+      <th>Descrição</th>
+      <th>Duração (s)</th>
+      <th>Data Upload</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in videos %}
+    <tr>
+      <td>{{ v.id }}</td>
+      <td>{{ v.title }}</td>
+      <td class="text-truncate" style="max-width:200px;">{{ v.description or '-' }}</td>
+      <td>{{ v.duration }}</td>
+      <td>
+        {% set parts = v.upload_time.split("T")[0].split("-") %}
+        {{ parts[2] }}-{{ parts[1] }}-{{ parts[0] }}
+      </td>
+      <td>
+        <a href="/watch/{{ v.id }}" class="btn btn-sm btn-primary">
+          <i class="bi bi-play-circle"></i>
+        </a>
+        <a href="/admin/edit/{{ v.id }}" class="btn btn-sm btn-warning">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <button
+          class="btn btn-sm btn-danger btn-delete-video"
+          data-video-id="{{ v.id }}">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/admin.js"></script>
+{% endblock %}

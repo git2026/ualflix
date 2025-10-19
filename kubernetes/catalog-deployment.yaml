@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:14
+        command: ['sh', '-c', 
+          'until pg_isready -h postgres -U ualflix -d catalogdb; do echo "Waiting for postgres..."; sleep 2; done;']
+      containers:
+      - name: catalog-service
+        image: ualflix_catalog_service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 120
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "ualflix"
+        - name: DB_PASSWORD
+          value: "senha123"
+        - name: DB_NAME
+          value: "catalogdb"
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: UPLOAD_DIR
+          value: "/app/videos"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        volumeMounts:
+        - name: videos
+          mountPath: /app/videos
+      - name: catalog-worker
+        image: ualflix_catalog_service:latest
+        imagePullPolicy: Never
+        command: ["celery", "-A", "tasks", "worker", "--loglevel=INFO", "-Q", "catalog_queue"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "ualflix"
+        - name: DB_PASSWORD
+          value: "senha123"
+        - name: DB_NAME
+          value: "catalogdb"
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: UPLOAD_DIR
+          value: "/app/videos"
+        volumeMounts:
+        - name: videos
+          mountPath: /app/videos
+      volumes:
+      - name: videos
+        persistentVolumeClaim:
+          claimName: videos-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+spec:
+  selector:
+    app: catalog-service
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5000
+    targetPort: 5000
+  type: ClusterIP

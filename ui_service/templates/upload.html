@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Upload – UALFlix{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Carregar Vídeo</h1>
+<form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label">Título</label>
+    <input name="title" class="form-control" required>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Duração (s)</label>
+    <input name="duration" type="number" class="form-control" required min="0" max="9999">
+  </div>
+  <div class="col-12">
+    <label class="form-label">Descrição</label>
+    <textarea name="description" class="form-control" rows="3"></textarea>
+  </div>
+  <div class="col-12">
+    <label class="form-label">Ficheiro MP4</label>
+    <input name="file" type="file" class="form-control" accept="video/mp4" required>
+  </div>
+  <div class="col-12">
+    <button type="submit" class="btn btn-success"><i class="bi bi-upload"></i> Upload</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type="submit"]');
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> A Enviar...`;
+
+    const data = new FormData(form);
+    try {
+      const resp = await fetch(form.action, { method: 'POST', body: data });
+
+      if (resp.status === 202) { 
+        const result = await resp.json();
+        const taskId = result.task_id;
+
+        if (!taskId) {
+          showToast('Erro: Nenhuma task ID foi retornada', true);
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+          return;
+        }
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> A Processar...`;
+        pollTask(taskId, btn, originalBtnText, form);
+
+      } else {
+        const errorText = await resp.text();
+        showToast(`Erro no upload: ${errorText}`, true);
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+    } catch (error) {
+      showToast('Erro de comunicação', true);
+      btn.disabled = false;
+      btn.innerHTML = originalBtnText;
+    }
+  });
+
+  function pollTask(taskId, btn, originalBtnText, form) {
+    const interval = setInterval(async () => {
+      try {
+        const resp = await fetch(`/api/videos/task/${taskId}`);
+        if (resp.status === 500) {
+           clearInterval(interval);
+           const error = await resp.json();
+           showToast(`Falha ao processar o vídeo: ${error.detail}`, true);
+           btn.disabled = false;
+           btn.innerHTML = originalBtnText;
+           return;
+        }
+
+        if (!resp.ok) {
+          clearInterval(interval);
+          showToast('Erro ao verificar o upload', true);
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+          return;
+        }
+        const statusResult = await resp.json();
+
+        if (statusResult.status === 'SUCCESS') {
+          clearInterval(interval);
+          const video = statusResult.result;
+          showToast(`Upload concluído: "${video.title}" (ID: ${video.id})`);
+          form.reset();
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+          setTimeout(() => window.location.href = '/', 1500);
+        } else if (statusResult.status === 'FAILURE') {
+          clearInterval(interval);
+          showToast('Falha ao processar o vídeo', true);
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+        }
+      } catch (error) {
+        clearInterval(interval);
+        showToast('Erro de comunicação ao verificar os status', true);
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+    }, 2000);
+  }
+
+  function showToast(msg, isError = false) {
+    const tc = document.createElement('div');
+    tc.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    tc.innerHTML = `
+      <div class="toast align-items-center text-white ${isError ? 'bg-danger' : 'bg-success'} border-0" role="alert">
+        <div class="d-flex">
+          <div class="toast-body">${msg}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      </div>`;
+    document.body.append(tc);
+    const t = new bootstrap.Toast(tc.querySelector('.toast'));
+    t.show();
+    tc.querySelector('.toast').addEventListener('hidden.bs.toast', () => tc.remove());
+  }
+</script>
+{% endblock %}
