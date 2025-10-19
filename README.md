@@ -1,6 +1,6 @@
 # UALFlix
 
-Sistema de streaming baseado em microserviços desenvolvido com Flask, PostgreSQL e Redis.
+Sistema de Streaming de Videos Curtos baseado em microserviços desenvolvido com Flask, PostgreSQL e Redis.
 
 ## Arquitetura
 
@@ -26,4 +26,5 @@ kubectl apply -f kubernetes/
 ## Acesso
 - Interface: http://localhost:8000
 - API Catalog: http://localhost:5000
+
 - API Streaming: http://localhost:5001
