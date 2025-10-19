@@ -26,5 +26,8 @@ kubectl apply -f kubernetes/
 ## Acesso
 - Interface: http://localhost:8000
 - API Catalog: http://localhost:5000
-
 - API Streaming: http://localhost:5001
+
+
+## Licença
+GNU v3.0
